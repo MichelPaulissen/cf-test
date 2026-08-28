@@ -1,0 +1,17 @@
+[package]
+name = "clusterflux-source"
+version = "0.2.0"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+clusterflux-core = { path = "../clusterflux-core" }
+serde.workspace = true
+sha2.workspace = true
+tempfile.workspace = true
+libc.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true
+tempfile.workspace = true

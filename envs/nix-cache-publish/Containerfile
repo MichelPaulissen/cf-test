@@ -1,0 +1,20 @@
+FROM nixos/nix:2.35.2
+ARG NIXPKGS_REV=b6018f87da91d19d0ab4cf979885689b469cdd41
+RUN printf '%s\n' \
+      'experimental-features = nix-command flakes' \
+      'sandbox = false' \
+      'build-users-group =' \
+      'extra-substituters = https://clusterflux.cachix.org' \
+      'extra-trusted-public-keys = clusterflux.cachix.org-1:bwo70JO4f9xI89aT6C9jwdeUUcno8y2hmKBUjBivyYs=' \
+      >> /etc/nix/nix.conf \
+ && printf '%s\n' '[safe]' 'directory = *' >> /etc/gitconfig \
+ && nix profile install "github:NixOS/nixpkgs/${NIXPKGS_REV}#cachix" \
+ && cachix --version | grep -F 'cachix 1.9.1' \
+ && printf '%s\n' 'nix:x:1000:1000:Single-user Nix:/home/nix:/bin/sh' >> /etc/passwd \
+ && printf '%s\n' 'nix:x:1000:' >> /etc/group \
+ && mkdir -p /home/nix /nix/var/log/nix \
+ && chown -R nix:nix /home/nix \
+ && chown nix:nix /nix/store \
+ && chown -R nix:nix /nix/var/nix /nix/var/log/nix
+USER nix
+WORKDIR /workspace

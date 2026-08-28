@@ -1,0 +1,261 @@
+{
+  "name": "clusterflux-vscode",
+  "displayName": "Clusterflux",
+  "description": "VS Code support for Clusterflux build programs, environments, and debugging.",
+  "version": "0.2.0",
+  "publisher": "clusterflux",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lesstuff/clusterflux.git"
+  },
+  "homepage": "https://github.com/lesstuff/clusterflux#readme",
+  "bugs": {
+    "url": "https://github.com/lesstuff/clusterflux/issues"
+  },
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "scripts": {
+    "package:vsix": "vsce package --skip-license"
+  },
+  "devDependencies": {
+    "@vscode/vsce": "3.9.2"
+  },
+  "categories": [
+    "Debuggers",
+    "Other"
+  ],
+  "activationEvents": [
+    "onLanguage:rust",
+    "onDebugResolve:clusterflux",
+    "onView:clusterflux.nodes",
+    "onView:clusterflux.processes",
+    "onView:clusterflux.logs",
+    "onView:clusterflux.artifacts",
+    "onView:clusterflux.inspector",
+    "workspaceContains:envs/*/Containerfile",
+    "workspaceContains:envs/*/Dockerfile"
+    ,"workspaceContains:.clusterflux/Cargo.toml"
+  ],
+  "main": "./extension.js",
+  "files": [
+    "extension.js",
+    "resources/**"
+  ],
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "clusterflux",
+          "title": "Clusterflux",
+          "icon": "resources/clusterflux.svg"
+        }
+      ]
+    },
+    "debuggers": [
+      {
+        "type": "clusterflux",
+        "label": "Clusterflux",
+        "languages": [
+          "rust"
+        ],
+        "configurationAttributes": {
+          "launch": {
+            "type": "object",
+            "required": [
+              "request",
+              "type",
+              "name"
+            ],
+            "properties": {
+              "name": {
+                "type": "string",
+                "default": "Clusterflux: Launch Virtual Process"
+              },
+              "type": {
+                "type": "string",
+                "default": "clusterflux"
+              },
+              "request": {
+                "type": "string",
+                "enum": [
+                  "launch"
+                ],
+                "default": "launch"
+              },
+              "entry": {
+                "type": "string",
+                "description": "Clusterflux entrypoint such as build, test, package, or release."
+              },
+              "project": {
+                "type": "string",
+                "description": "Project directory. Defaults to the current workspace folder."
+              },
+              "sourcePath": {
+                "type": "string",
+                "description": "Source file shown in the Clusterflux virtual stack. Defaults to .clusterflux/main.rs."
+              },
+              "runtimeBackend": {
+                "type": "string",
+                "enum": [
+                  "local-services",
+                  "live-services",
+                  "simulated"
+                ],
+                "default": "local-services",
+                "description": "Runtime backend used by the debug adapter. F5 defaults to local coordinator/node services; live-services uses the configured coordinator and an attached node."
+              },
+              "coordinatorEndpoint": {
+                "type": "string",
+                "description": "Optional coordinator assertion. Normally inferred from the authenticated CLI session."
+              },
+              "processId": {
+                "type": "string",
+                "description": "Explicit virtual process identity. Normally derived from the workspace and entrypoint."
+              }
+            }
+          },
+          "attach": {
+            "type": "object",
+            "required": [
+              "request",
+              "type",
+              "name",
+              "processId"
+            ],
+            "properties": {
+              "name": {
+                "type": "string",
+                "default": "Clusterflux: Attach to Virtual Process"
+              },
+              "type": {
+                "type": "string",
+                "default": "clusterflux"
+              },
+              "request": {
+                "type": "string",
+                "enum": [
+                  "attach"
+                ],
+                "default": "attach"
+              },
+              "processId": {
+                "type": "string",
+                "description": "Virtual process to attach to."
+              },
+              "entry": {
+                "type": "string",
+                "description": "Entrypoint represented by the virtual process."
+              },
+              "project": {
+                "type": "string",
+                "description": "Local workspace used for source and bundle metadata."
+              },
+              "sourcePath": {
+                "type": "string",
+                "description": "Source file shown in the Clusterflux virtual stack."
+              },
+              "runtimeBackend": {
+                "type": "string",
+                "enum": [
+                  "local-services",
+                  "live-services",
+                  "simulated"
+                ],
+                "default": "live-services"
+              },
+              "coordinatorEndpoint": {
+                "type": "string",
+                "description": "Optional coordinator assertion. Normally inferred from the authenticated CLI session."
+              }
+            }
+          }
+        }
+      }
+    ],
+    "commands": [
+      {
+        "command": "clusterflux.refreshProcesses",
+        "title": "Clusterflux: Refresh Virtual Processes",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "clusterflux.workflow.check",
+        "title": "Clusterflux: Check Workflow"
+      },
+      {
+        "command": "clusterflux.workflow.run",
+        "title": "Clusterflux: Run Entrypoint"
+      },
+      {
+        "command": "clusterflux.workflow.debug",
+        "title": "Clusterflux: Debug Entrypoint"
+      },
+      {
+        "command": "clusterflux.process.attach",
+        "title": "Clusterflux: Attach to Virtual Process",
+        "icon": "$(debug-alt)"
+      },
+      {
+        "command": "clusterflux.process.cancel",
+        "title": "Clusterflux: Request Process Cancellation",
+        "icon": "$(debug-stop)"
+      },
+      {
+        "command": "clusterflux.process.abort",
+        "title": "Clusterflux: Abort Virtual Process",
+        "icon": "$(error)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "clusterflux.refreshProcesses",
+          "when": "view == clusterflux.processes",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "clusterflux.process.attach",
+          "when": "view == clusterflux.processes && viewItem == clusterflux.virtualProcess",
+          "group": "inline@1"
+        },
+        {
+          "command": "clusterflux.process.cancel",
+          "when": "view == clusterflux.processes && viewItem == clusterflux.virtualProcess",
+          "group": "process@2"
+        },
+        {
+          "command": "clusterflux.process.abort",
+          "when": "view == clusterflux.processes && viewItem == clusterflux.virtualProcess",
+          "group": "process@3"
+        }
+      ]
+    },
+    "views": {
+      "clusterflux": [
+        {
+          "id": "clusterflux.nodes",
+          "name": "Clusterflux Nodes"
+        },
+        {
+          "id": "clusterflux.processes",
+          "name": "Clusterflux Processes"
+        },
+        {
+          "id": "clusterflux.logs",
+          "name": "Clusterflux Logs"
+        },
+        {
+          "id": "clusterflux.artifacts",
+          "name": "Clusterflux Artifacts"
+        },
+        {
+          "id": "clusterflux.inspector",
+          "name": "Clusterflux Inspector"
+        }
+      ]
+    }
+  }
+}

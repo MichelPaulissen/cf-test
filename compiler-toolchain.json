@@ -1,0 +1,6 @@
+{
+  "rust_release": "1.91.1",
+  "host_os": "linux",
+  "host_arches": ["x86_64", "aarch64"],
+  "wasm_target": "wasm32-unknown-unknown"
+}

@@ -1,0 +1,6 @@
+version = 1
+name = "github-publish"
+os = "linux"
+arch = "x86_64"
+capabilities = ["command", "network", "vfs_artifacts"]
+secrets = []

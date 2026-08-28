@@ -1,0 +1,9 @@
+kind = "containerfile"
+recipe = "Containerfile"
+context = "../../../.."
+
+[requirements]
+os = "linux"
+arch = "x86_64"
+backend = "container"
+capabilities = ["Command", "Containers", "RootlessPodman"]

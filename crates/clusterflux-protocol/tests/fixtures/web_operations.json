@@ -1,0 +1,260 @@
+[
+  {
+    "operation": "begin_oidc_browser_login",
+    "boundary": "login",
+    "request": { "type": "begin_oidc_browser_login" },
+    "response": { "type": "oidc_browser_login_started", "transaction_id": "login-transaction", "polling_secret": "opaque-polling-secret", "authorization_url": "https://auth.lesstuff.com/application/o/authorize/?state=server-state&nonce=server-nonce&code_challenge=server-pkce&code_challenge_method=S256&redirect_uri=https%3A%2F%2Fclusterflux.lesstuff.com%2Fauth%2Fcallback", "expires_at_epoch_seconds": 1800000000 }
+  },
+  {
+    "operation": "poll_oidc_browser_login",
+    "boundary": "login",
+    "request": { "type": "poll_oidc_browser_login", "transaction_id": "login-transaction", "polling_secret": "opaque-polling-secret" },
+    "response": {
+      "type": "oidc_browser_session",
+      "session": {
+        "tenant": "tenant-smoke",
+        "project": "project-smoke",
+        "user": "user-smoke",
+        "browser_credential_kind": "BrowserSession",
+        "cli_session_credential_kind": "CliDeviceSession",
+        "cli_session_secret": "scoped-cli-session-secret",
+        "cli_session_secret_digest": "sha256:ed14ed3086c0feedf2295d873348dfb09e7d52fc020d87d6e2539ff3053ce440",
+        "expires_at_epoch_seconds": 1800000000,
+        "flow": {
+          "authorization_url": "https://auth.lesstuff.com/application/o/authorize/?state=server-state&nonce=server-nonce&code_challenge=server-pkce&code_challenge_method=S256&redirect_uri=https%3A%2F%2Fclusterflux.lesstuff.com%2Fauth%2Fcallback",
+          "callback_path": "https://clusterflux.lesstuff.com/auth/callback",
+          "state": "server-state"
+        },
+        "oidc_token_exchange": {
+          "token_endpoint": "https://auth.lesstuff.com/application/o/token/",
+          "token_type": "Bearer",
+          "received_access_token": true,
+          "received_id_token": true,
+          "retained_provider_tokens": false
+        },
+        "normalized_identity": {
+          "source": "authentik-issued-oidc-session",
+          "external_identity_provider": "authentik",
+          "external_provider_protocol": "oidc",
+          "authentik_subject_present": true,
+          "external_subject_present": true,
+          "email_claim_present": true,
+          "email_verified": true,
+          "ambiguous_external_identity": false,
+          "provider_trusted_by_authentik": true,
+          "consumed_normalized_authentik_identity": true,
+          "provider_specific_tokens_consumed_directly": false,
+          "provider_tokens_retained": false
+        },
+        "signup_checks": {
+          "normalized_identity_source": "authentik-issued-oidc-session",
+          "external_identity_provider": "authentik",
+          "external_provider_protocol": "oidc",
+          "approved_external_identity_provider_required": false,
+          "approved_external_identity_provider": true,
+          "required_claims_present": true,
+          "ambiguous_identity": false,
+          "email_policy_checked": false,
+          "email_verified_or_provider_trusted": true,
+          "hosted_signup_policy_checked": true,
+          "clusterflux_native_password_signup_allowed": false,
+          "private_failure_details_exposed": false,
+          "default_project_created_or_linked": true
+        },
+        "provider_tokens_sent_to_nodes": false
+      }
+    }
+  },
+  {
+    "operation": "begin_web_browser_login",
+    "boundary": "login",
+    "request": { "type": "begin_web_browser_login" },
+    "response": { "type": "web_browser_login_started", "transaction_id": "login-transaction", "authorization_url": "https://auth.clusterflux.lesstuff.com/authorize?state=opaque", "expires_at_epoch_seconds": 1000 }
+  },
+  {
+    "operation": "cancel_web_browser_login",
+    "boundary": "login",
+    "request": { "type": "cancel_web_browser_login", "transaction_id": "login-transaction" },
+    "response": { "type": "web_browser_login_cancelled" }
+  },
+  {
+    "operation": "exchange_web_login_handoff",
+    "boundary": "login",
+    "request": { "type": "exchange_web_login_handoff", "transaction_id": "login-transaction", "handoff_code": "one-time-handoff" },
+    "response": { "type": "web_browser_session", "session": { "tenant": "tenant-one", "project": "project-one", "user": "user-one", "session_secret": "server-side-session", "expires_at_epoch_seconds": 2000 } }
+  },
+  {
+    "operation": "auth_status",
+    "boundary": "control",
+    "request": { "type": "auth_status" },
+    "response": { "type": "auth_status", "tenant": "tenant-one", "project": "project-one", "actor": "user-one", "authenticated": true, "account_status": "active", "suspended": false, "disabled": false, "deleted": false, "manual_review": false, "sanitized_reason": null, "next_actions": [], "sensitive_moderation_details_exposed": false, "signup_failure_details_exposed": false }
+  },
+  {
+    "operation": "revoke_cli_session",
+    "boundary": "control",
+    "request": { "type": "revoke_cli_session" },
+    "response": { "type": "cli_session_revoked", "tenant": "tenant-one", "project": "project-one", "actor": "user-one" }
+  },
+  {
+    "operation": "create_project",
+    "boundary": "control",
+    "request": { "type": "create_project", "project": "project-new", "name": "New project" },
+    "response": { "type": "project_created", "project": { "id": "project-new", "tenant": "tenant-one", "name": "New project" }, "actor": "user-one" }
+  },
+  {
+    "operation": "select_project",
+    "boundary": "control",
+    "request": { "type": "select_project", "project": "project-selected" },
+    "response": { "type": "project_selected", "project": { "id": "project-selected", "tenant": "tenant-one", "name": "Selected project" }, "actor": "user-one" }
+  },
+  {
+    "operation": "list_projects",
+    "boundary": "control",
+    "request": { "type": "list_projects" },
+    "response": { "type": "projects", "projects": [{ "id": "project-one", "tenant": "tenant-one", "name": "Project one" }], "actor": "user-one" }
+  },
+  {
+    "operation": "register_agent_public_key",
+    "boundary": "control",
+    "request": { "type": "register_agent_public_key", "agent": "agent-browser", "public_key": "ed25519:test-public-key" },
+    "response": { "type": "agent_public_key", "record": { "tenant": "tenant-one", "project": "project-one", "user": "user-one", "agent": "agent-browser", "public_key": "ed25519:test-public-key", "public_key_fingerprint": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "version": 1, "revoked": false, "scopes": ["project"], "human_account_creation_privilege": false, "browser_interaction_required_each_run": false }, "actor": "user-one" }
+  },
+  {
+    "operation": "list_agent_public_keys",
+    "boundary": "control",
+    "request": { "type": "list_agent_public_keys" },
+    "response": { "type": "agent_public_keys", "records": [], "actor": "user-one" }
+  },
+  {
+    "operation": "rotate_agent_public_key",
+    "boundary": "control",
+    "request": { "type": "rotate_agent_public_key", "agent": "agent-browser", "public_key": "ed25519:rotated-public-key" },
+    "response": { "type": "agent_public_key", "record": { "tenant": "tenant-one", "project": "project-one", "user": "user-one", "agent": "agent-browser", "public_key": "ed25519:rotated-public-key", "public_key_fingerprint": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "version": 2, "revoked": false, "scopes": ["project"], "human_account_creation_privilege": false, "browser_interaction_required_each_run": false }, "actor": "user-one" }
+  },
+  {
+    "operation": "revoke_agent_public_key",
+    "boundary": "control",
+    "request": { "type": "revoke_agent_public_key", "agent": "agent-browser" },
+    "response": { "type": "agent_public_key", "record": { "tenant": "tenant-one", "project": "project-one", "user": "user-one", "agent": "agent-browser", "public_key": "ed25519:rotated-public-key", "public_key_fingerprint": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "version": 3, "revoked": true, "scopes": ["project"], "human_account_creation_privilege": false, "browser_interaction_required_each_run": false }, "actor": "user-one" }
+  },
+  {
+    "operation": "create_node_enrollment_grant",
+    "boundary": "control",
+    "request": { "type": "create_node_enrollment_grant", "ttl_seconds": 300 },
+    "response": { "type": "node_enrollment_grant_created", "tenant": "tenant-one", "project": "project-one", "grant": "one-time-grant", "scope": "tenant-one/project-one", "expires_at_epoch_seconds": 1000 }
+  },
+  {
+    "operation": "list_node_summaries",
+    "boundary": "control",
+    "request": { "type": "list_node_summaries", "cursor": null, "limit": 200 },
+    "response": { "type": "node_summaries", "nodes": [], "next_cursor": null, "actor": "user-one" }
+  },
+  {
+    "operation": "revoke_node_credential",
+    "boundary": "control",
+    "request": { "type": "revoke_node_credential", "node": "node-one" },
+    "response": { "type": "node_credential_revoked", "node": "node-one", "tenant": "tenant-one", "project": "project-one", "actor": "user-one", "descriptor_removed": true, "queued_assignments_removed": 0 }
+  },
+  {
+    "operation": "list_process_summaries",
+    "boundary": "control",
+    "request": { "type": "list_process_summaries", "cursor": "process:1", "limit": 20 },
+    "response": { "type": "process_summaries", "processes": [], "next_cursor": null, "actor": "user-one" }
+  },
+  {
+    "operation": "cancel_process",
+    "boundary": "control",
+    "request": { "type": "cancel_process", "process": "process-one" },
+    "response": { "type": "process_cancellation_requested", "process": "process-one", "cancelled_tasks": [], "affected_nodes": [] }
+  },
+  {
+    "operation": "abort_process",
+    "boundary": "control",
+    "request": { "type": "abort_process", "process": "process-one" },
+    "response": { "type": "process_aborted", "process": "process-one", "aborted_tasks": [], "affected_nodes": [] }
+  },
+  {
+    "operation": "quota_status",
+    "boundary": "control",
+    "request": { "type": "quota_status" },
+    "response": { "type": "quota_status", "tenant": "tenant-one", "project": "project-one", "actor": "user-one", "policy_label": "community tier", "limits": { "limits": { "ApiCall": 10000 } }, "window_seconds": { "ApiCall": 60 }, "usage": { "ApiCall": 12 }, "window_started_epoch_seconds": { "ApiCall": 900 }, "projects_current": 1, "projects_maximum": 1, "node_identities_current": 2, "node_identities_maximum": 4, "active_processes_current": 1, "active_processes_maximum": 1 }
+  },
+  {
+    "operation": "list_task_events",
+    "boundary": "control",
+    "request": { "type": "list_task_events", "process": "process-one" },
+    "response": { "type": "task_events", "events": [] }
+  },
+  {
+    "operation": "list_task_snapshots",
+    "boundary": "control",
+    "request": { "type": "list_task_snapshots", "process": "process-one" },
+    "response": { "type": "task_snapshots", "snapshots": [] }
+  },
+  {
+    "operation": "list_recent_logs",
+    "boundary": "control",
+    "request": { "type": "list_recent_logs", "process": "process-one", "task": "task-one", "after_sequence": 7, "limit": 100 },
+    "response": { "type": "recent_logs", "entries": [{ "sequence": 1, "process": "process-one", "task": "task-one", "stream": "stdout", "text": "building", "server_timestamp_epoch_seconds": 1000, "truncated": false }], "next_sequence": 1, "history_truncated": false }
+  },
+  {
+    "operation": "restart_task",
+    "boundary": "control",
+    "request": { "type": "restart_task", "process": "process-one", "task": "task-one", "replacement_bundle": null },
+    "response": { "type": "task_restart", "process": "process-one", "task": "task-one", "restarted_task_instance": "task-one-retry", "restarted_attempt_id": "attempt-2", "actor": "user-one", "accepted": true, "clean_boundary_available": true, "active_task": false, "completed_event_observed": true, "requires_whole_process_restart": false, "message": "task restart accepted", "audit_event": { "tenant": "tenant-one", "project": "project-one", "process": "process-one", "task": "task-one", "actor": "user-one", "operation": "restart_task", "allowed": true, "reason": "authorized", "charged_debug_read_bytes": 0, "used_debug_read_bytes": 0 }, "charged_debug_read_bytes": 0, "used_debug_read_bytes": 0 }
+  },
+  {
+    "operation": "resolve_task_failure",
+    "boundary": "control",
+    "request": { "type": "resolve_task_failure", "process": "process-one", "task": "task-one", "resolution": "accept_failure" },
+    "response": { "type": "task_failure_resolved", "process": "process-one", "task": "task-one", "attempt_id": "attempt-1", "resolution": "accept_failure" }
+  },
+  {
+    "operation": "debug_attach",
+    "boundary": "control",
+    "request": { "type": "debug_attach", "process": "process-one" },
+    "response": { "type": "debug_attach", "process": "process-one", "actor": "user-one", "authorization": { "allowed": true, "reason": "authorized" }, "audit_event": { "tenant": "tenant-one", "project": "project-one", "process": "process-one", "task": null, "actor": "user-one", "operation": "debug_attach", "allowed": true, "reason": "authorized", "charged_debug_read_bytes": 0, "used_debug_read_bytes": 0 }, "charged_debug_read_bytes": 0, "used_debug_read_bytes": 0, "source_revision": null }
+  },
+  {
+    "operation": "create_debug_epoch",
+    "boundary": "control",
+    "request": { "type": "create_debug_epoch", "process": "process-one", "stopped_task": "task-one", "reason": "breakpoint" },
+    "response": { "type": "debug_epoch", "process": "process-one", "actor": "user-one", "epoch": 3, "command": "freeze", "affected_tasks": [], "all_stop_requested": true, "audit_event": { "tenant": "tenant-one", "project": "project-one", "process": "process-one", "task": "task-one", "actor": "user-one", "operation": "create_debug_epoch", "allowed": true, "reason": "authorized", "charged_debug_read_bytes": 0, "used_debug_read_bytes": 0 }, "charged_debug_read_bytes": 0, "used_debug_read_bytes": 0 }
+  },
+  {
+    "operation": "resume_debug_epoch",
+    "boundary": "control",
+    "request": { "type": "resume_debug_epoch", "process": "process-one", "epoch": 3 },
+    "response": { "type": "debug_epoch", "process": "process-one", "actor": "user-one", "epoch": 3, "command": "resume", "affected_tasks": [], "all_stop_requested": false, "audit_event": { "tenant": "tenant-one", "project": "project-one", "process": "process-one", "task": null, "actor": "user-one", "operation": "resume_debug_epoch", "allowed": true, "reason": "authorized", "charged_debug_read_bytes": 0, "used_debug_read_bytes": 0 }, "charged_debug_read_bytes": 0, "used_debug_read_bytes": 0 }
+  },
+  {
+    "operation": "inspect_debug_epoch",
+    "boundary": "control",
+    "request": { "type": "inspect_debug_epoch", "process": "process-one", "epoch": 3 },
+    "response": { "type": "debug_epoch_status", "process": "process-one", "actor": "user-one", "epoch": 3, "command": "freeze", "expected_tasks": [], "acknowledgements": [], "fully_frozen": false, "partially_frozen": true, "fully_resumed": false, "failed": false, "failure_messages": [], "audit_event": { "tenant": "tenant-one", "project": "project-one", "process": "process-one", "task": null, "actor": "user-one", "operation": "inspect_debug_epoch", "allowed": true, "reason": "authorized", "charged_debug_read_bytes": 0, "used_debug_read_bytes": 0 }, "charged_debug_read_bytes": 0, "used_debug_read_bytes": 0 }
+  },
+  {
+    "operation": "list_artifacts",
+    "boundary": "control",
+    "request": { "type": "list_artifacts", "process": "process-one", "cursor": "artifact:1", "limit": 50 },
+    "response": { "type": "artifacts", "artifacts": [], "next_cursor": null }
+  },
+  {
+    "operation": "get_artifact",
+    "boundary": "control",
+    "request": { "type": "get_artifact", "artifact": "artifact-one" },
+    "response": { "type": "artifact", "artifact": { "id": "artifact-one", "display_path": "/out/artifact-one", "display_name": "artifact-one", "process": "process-one", "producer_task": "task-one", "safe_node": "node-one", "digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc", "size_bytes": 5, "availability": "available", "downloadable_now": true, "retention_state": "node_retained", "explicit_storage": false, "order_cursor": "artifact:1" } }
+  },
+  {
+    "operation": "create_artifact_download_link",
+    "boundary": "control",
+    "request": { "type": "create_artifact_download_link", "artifact": "artifact-one", "max_bytes": 1048576, "ttl_seconds": 120 },
+    "response": { "type": "artifact_download_link", "link": { "artifact": "artifact-one", "artifact_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc", "artifact_size_bytes": 5, "source": { "RetainedNode": "node-one" }, "url_path": "/artifacts/tenant-one/project-one/process-one/artifact-one", "scoped_token_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd", "expires_at_epoch_seconds": 1100, "tenant": "tenant-one", "project": "project-one", "process": "process-one", "actor": { "User": "user-one" }, "max_bytes": 1048576, "policy_context_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee" } }
+  },
+  {
+    "operation": "revoke_artifact_download_link",
+    "boundary": "control",
+    "request": { "type": "revoke_artifact_download_link", "artifact": "artifact-one", "token_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" },
+    "response": { "type": "artifact_download_link_revoked", "link": { "artifact": "artifact-one", "artifact_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc", "artifact_size_bytes": 5, "source": { "RetainedNode": "node-one" }, "url_path": "/artifacts/tenant-one/project-one/process-one/artifact-one", "scoped_token_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "expires_at_epoch_seconds": 1100, "tenant": "tenant-one", "project": "project-one", "process": "process-one", "actor": { "User": "user-one" }, "max_bytes": 1048576, "policy_context_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee" } }
+  }
+]

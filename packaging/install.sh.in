@@ -1,0 +1,143 @@
+#!/bin/sh
+set -eu
+
+repository=lesstuff/clusterflux
+release_tag='@RELEASE_TAG@'
+version='@VERSION@'
+archive_name=clusterflux-linux-x86_64.tar.gz
+deb_name=clusterflux-linux-amd64.deb
+rpm_name=clusterflux-linux-x86_64.rpm
+archive_sha256='@ARCHIVE_SHA256@'
+deb_sha256='@DEB_SHA256@'
+rpm_sha256='@RPM_SHA256@'
+base_url="https://github.com/${repository}/releases/download/${release_tag}"
+
+case "$(uname -s)" in
+  Linux) ;;
+  *) echo "Clusterflux ${version} installer currently supports Linux only" >&2; exit 1 ;;
+esac
+case "$(uname -m)" in
+  x86_64|amd64) ;;
+  *) echo "Clusterflux ${version} installer currently supports x86-64 only" >&2; exit 1 ;;
+esac
+
+umask 022
+tmp=$(mktemp -d "${TMPDIR:-/tmp}/clusterflux-install.XXXXXX")
+trap 'rm -rf "$tmp"' EXIT HUP INT TERM
+
+fetch() {
+  url=$1
+  output=$2
+  if command -v curl >/dev/null 2>&1; then
+    curl -fL --retry 3 --retry-delay 1 --connect-timeout 15 "$url" -o "$output"
+  elif command -v wget >/dev/null 2>&1; then
+    wget -q --https-only --tries=3 --timeout=30 "$url" -O "$output"
+  else
+    echo "install curl or wget before running the Clusterflux installer" >&2
+    exit 1
+  fi
+}
+
+sha256_file() {
+  file=$1
+  if command -v sha256sum >/dev/null 2>&1; then
+    sha256sum "$file" | cut -d' ' -f1
+  elif command -v shasum >/dev/null 2>&1; then
+    shasum -a 256 "$file" | cut -d' ' -f1
+  else
+    echo "install sha256sum or shasum before running the Clusterflux installer" >&2
+    exit 1
+  fi
+}
+
+download_verified() {
+  name=$1
+  expected=$2
+  output="$tmp/$name"
+  fetch "$base_url/$name" "$output"
+  actual=$(sha256_file "$output")
+  if [ "$actual" != "$expected" ]; then
+    echo "checksum mismatch for $name" >&2
+    exit 1
+  fi
+  printf '%s\n' "$output"
+}
+
+method=${CLUSTERFLUX_INSTALL_METHOD:-auto}
+if [ "$method" = auto ]; then
+  if [ "$(id -u)" -eq 0 ] && command -v dpkg >/dev/null 2>&1 && command -v apt-get >/dev/null 2>&1; then
+    method=deb
+  elif [ "$(id -u)" -eq 0 ] && { command -v dnf >/dev/null 2>&1 || command -v yum >/dev/null 2>&1 || command -v rpm >/dev/null 2>&1; }; then
+    method=rpm
+  else
+    method=archive
+  fi
+fi
+
+case "$method" in
+  deb)
+    if [ "$(id -u)" -ne 0 ]; then
+      echo "DEB installation requires root; rerun through sudo or use archive mode" >&2
+      exit 1
+    fi
+    package=$(download_verified "$deb_name" "$deb_sha256")
+    DEBIAN_FRONTEND=noninteractive apt-get install -y "$package"
+    install_root=/usr
+    ;;
+  rpm)
+    if [ "$(id -u)" -ne 0 ]; then
+      echo "RPM installation requires root; rerun through sudo or use archive mode" >&2
+      exit 1
+    fi
+    package=$(download_verified "$rpm_name" "$rpm_sha256")
+    if command -v dnf >/dev/null 2>&1; then
+      dnf install -y "$package"
+    elif command -v yum >/dev/null 2>&1; then
+      yum install -y "$package"
+    else
+      rpm -Uvh --replacepkgs "$package"
+    fi
+    install_root=/usr
+    ;;
+  archive)
+    package=$(download_verified "$archive_name" "$archive_sha256")
+    if [ "$(id -u)" -eq 0 ]; then
+      prefix=${CLUSTERFLUX_INSTALL_PREFIX:-/usr/local}
+    else
+      prefix=${CLUSTERFLUX_INSTALL_PREFIX:-"${HOME:?HOME is required}/.local"}
+    fi
+    mkdir -p "$tmp/extracted" "$prefix/bin" "$prefix/share"
+    tar -xzf "$package" -C "$tmp/extracted"
+    test -x "$tmp/extracted/bin/clusterflux"
+    test -x "$tmp/extracted/bin/clusterflux-node"
+    test -f "$tmp/extracted/share/clusterflux/system-compiler-image.oci.tar"
+    test -f "$tmp/extracted/share/clusterflux/system-bundles.json"
+    test -f "$tmp/extracted/share/clusterflux/compiler-environment.json"
+    test -f "$tmp/extracted/share/clusterflux/compiler-image-digest.txt"
+    cp -a "$tmp/extracted/bin/." "$prefix/bin/"
+    cp -a "$tmp/extracted/share/." "$prefix/share/"
+    install_root=$prefix
+    ;;
+  *)
+    echo "CLUSTERFLUX_INSTALL_METHOD must be auto, archive, deb, or rpm" >&2
+    exit 1
+    ;;
+esac
+
+if [ "$method" = archive ]; then
+  test -x "$install_root/bin/clusterflux"
+  test -x "$install_root/bin/clusterflux-node"
+  test -f "$install_root/share/clusterflux/system-compiler-image.oci.tar"
+  test -f "$install_root/share/clusterflux/system-bundles.json"
+  test -f "$install_root/share/clusterflux/compiler-environment.json"
+  test -f "$install_root/share/clusterflux/compiler-image-digest.txt"
+  "$install_root/bin/clusterflux" --version
+  "$install_root/bin/clusterflux-node" --version
+fi
+
+printf '\nClusterflux %s installed under %s.\n' "$version" "$install_root"
+case ":${PATH:-}:" in
+  *:"$install_root/bin":*) ;;
+  *) printf 'Add %s/bin to PATH before continuing.\n' "$install_root" ;;
+esac
+printf 'Next: clusterflux login https://clusterflux.lesstuff.com\n'

@@ -1,0 +1,6 @@
+version = 1
+name = "release-build"
+os = "linux"
+arch = "x86_64"
+capabilities = ["command", "network", "source_filesystem", "source_git", "vfs_artifacts"]
+secrets = []

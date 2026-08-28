@@ -1,0 +1,48 @@
+{
+  "artifacts": [
+    {
+      "path": "/vfs/artifacts/dap-output.txt",
+      "size": "reported by node",
+      "status": "best-effort retained on the attached node"
+    }
+  ],
+  "inspector": [
+    {
+      "label": "Runtime backend",
+      "value": "live services"
+    },
+    {
+      "label": "Coordinator",
+      "value": "127.0.0.1:9443"
+    },
+    {
+      "label": "Node report",
+      "value": "{\"debug_attach\":{\"authorization\":{\"allowed\":true}},\"task_snapshots\":{\"snapshots\":[]}}"
+    },
+    {
+      "label": "Task events",
+      "value": "{\"events\":[{\"executor\":\"node\",\"node\":\"worker-linux\",\"status_code\":0,\"task\":\"ti:child:1\",\"task_definition\":\"compile_linux\",\"terminal_state\":\"completed\"},{\"executor\":\"coordinator_main\",\"node\":\"coordinator-main\",\"status_code\":0,\"task\":\"ti:vp-48cd5bcd920d:main\",\"task_definition\":\"sha256:main-definition\",\"terminal_state\":\"completed\"}]}"
+    }
+  ],
+  "logs": [
+    {
+      "bytes": "stdout=0 stderr=0",
+      "message": "node task output was staged as a VFS artifact",
+      "task": "compile-linux"
+    }
+  ],
+  "nodes": [
+    {
+      "capabilities": "connected to 127.0.0.1:9443",
+      "id": "coordinator-main",
+      "status": "completed"
+    }
+  ],
+  "processes": [
+    {
+      "entry": "",
+      "id": "vp-48cd5bcd920d",
+      "status": "completed"
+    }
+  ]
+}

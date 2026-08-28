@@ -1,0 +1,17 @@
+[package]
+name = "clusterflux-macros"
+version = "0.2.0"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[lib]
+proc-macro = true
+
+[dependencies]
+hex.workspace = true
+proc-macro2.workspace = true
+quote.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+syn.workspace = true

@@ -1,0 +1,4 @@
+[build]
+# All workspace roots invoked from this checkout share one dependency cache.
+# Cargo chooses parallelism from the current machine.
+target-dir = "target"

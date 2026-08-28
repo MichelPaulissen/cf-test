@@ -1,0 +1,6 @@
+version = 1
+name = "windows-node-build"
+os = "windows"
+arch = "x86_64"
+capabilities = ["command", "network", "source_filesystem", "source_git", "vfs_artifacts"]
+secrets = []

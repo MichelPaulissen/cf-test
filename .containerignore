@@ -1,0 +1,6 @@
+target
+.git
+.direnv
+result
+evidence
+evidence-*

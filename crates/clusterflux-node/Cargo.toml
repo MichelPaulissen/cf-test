@@ -1,0 +1,54 @@
+[package]
+name = "clusterflux-node"
+version = "0.2.0"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+autobins = false
+
+[[bin]]
+name = "clusterflux-node"
+path = "src/main.rs"
+
+[[bin]]
+name = "clusterflux-podman-smoke"
+path = "src/bin/clusterflux-podman-smoke.rs"
+
+[[bin]]
+name = "clusterflux-environment-setup"
+path = "src/bin/clusterflux-environment-setup.rs"
+
+[[bin]]
+name = "clusterflux-wasmtime-smoke"
+path = "src/bin/clusterflux-wasmtime-smoke.rs"
+
+[[bin]]
+name = "clusterflux-system-package"
+path = "src/bin/clusterflux-system-package.rs"
+
+[dependencies]
+base64.workspace = true
+clap.workspace = true
+clusterflux-artifact-transfer = { path = "../clusterflux-artifact-transfer" }
+clusterflux-client = { path = "../clusterflux-client" }
+clusterflux-core = { path = "../clusterflux-core" }
+clusterflux-protocol = { path = "../clusterflux-protocol" }
+clusterflux-source = { path = "../clusterflux-source" }
+clusterflux-wasm-runtime = { path = "../clusterflux-wasm-runtime" }
+libc.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+tempfile.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tokio-util.workspace = true
+wasmparser.workspace = true
+wait-timeout.workspace = true
+zeroize.workspace = true
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = ["Win32_Storage_FileSystem"] }
+
+[dev-dependencies]
+wat = "=1.253.0"

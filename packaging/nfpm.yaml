@@ -1,0 +1,34 @@
+name: clusterflux
+arch: amd64
+platform: linux
+version: ${CLUSTERFLUX_PACKAGE_VERSION}
+version_schema: semver
+release: ${CLUSTERFLUX_PACKAGE_RELEASE}
+section: devel
+priority: optional
+maintainer: Clusterflux maintainers
+description: |
+  Open-source distributed build runtime.
+  Write build and CI workflows as Rust, run tasks on attached nodes, and debug
+  the distributed workflow as one virtual process.
+vendor: lesstuff
+homepage: https://github.com/lesstuff/clusterflux
+license: Apache-2.0 OR MIT
+provides:
+  - clusterflux-tools
+umask: 0o022
+contents:
+  - src: ${CLUSTERFLUX_STAGE_ROOT}/bin/
+    dst: /usr/bin
+    expand: true
+  - src: ${CLUSTERFLUX_STAGE_ROOT}/share/clusterflux/
+    dst: /usr/share/clusterflux
+    expand: true
+  - src: ${CLUSTERFLUX_STAGE_ROOT}/share/doc/clusterflux/
+    dst: /usr/share/doc/clusterflux
+    expand: true
+rpm:
+  summary: Distributed build runtime and developer tools
+  compression: gzip:9
+deb:
+  compression: gzip:9

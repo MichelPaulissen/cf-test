@@ -1,0 +1,41 @@
+# escape=`
+FROM mcr.microsoft.com/windows/servercore:ltsc2025
+
+SHELL ["powershell.exe", "-NoLogo", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
+
+ARG RUSTUP_VERSION=1.28.2
+ARG RUSTUP_SHA256=88d8258dcf6ae4f7a80c7d1088e1f36fa7025a1cfd1343731b4ee6f385121fc0
+ARG RUST_VERSION=1.91.1
+ARG LLVM_MINGW_VERSION=20260826
+ARG LLVM_MINGW_SHA256=ae601f4e0f72bbdf441ad2df8bb16f037e2e9251559ea6b37b4057aef39c06c3
+
+ENV CARGO_HOME="C:\cargo" `
+    RUSTUP_HOME="C:\rustup"
+
+RUN Invoke-WebRequest -UseBasicParsing `
+      -Uri "https://static.rust-lang.org/rustup/archive/$env:RUSTUP_VERSION/x86_64-pc-windows-msvc/rustup-init.exe" `
+      -OutFile C:\rustup-init.exe; `
+    if ((Get-FileHash -Algorithm SHA256 C:\rustup-init.exe).Hash.ToLowerInvariant() -ne $env:RUSTUP_SHA256) { throw 'rustup-init digest mismatch' }; `
+    $rustup = Start-Process C:\rustup-init.exe `
+      -ArgumentList '-y','--profile','minimal','--default-host','x86_64-pc-windows-gnullvm','--default-toolchain',$env:RUST_VERSION `
+      -NoNewWindow -Wait -PassThru; `
+    if ($rustup.ExitCode -ne 0) { throw "rustup-init failed with exit code $($rustup.ExitCode)" }; `
+    Remove-Item C:\rustup-init.exe -Force
+
+RUN Invoke-WebRequest -UseBasicParsing `
+      -Uri "https://github.com/mstorsjo/llvm-mingw/releases/download/$env:LLVM_MINGW_VERSION/llvm-mingw-$env:LLVM_MINGW_VERSION-ucrt-x86_64.zip" `
+      -OutFile C:\llvm-mingw.zip; `
+    if ((Get-FileHash -Algorithm SHA256 C:\llvm-mingw.zip).Hash.ToLowerInvariant() -ne $env:LLVM_MINGW_SHA256) { throw 'llvm-mingw digest mismatch' }; `
+    Expand-Archive -LiteralPath C:\llvm-mingw.zip -DestinationPath C:\llvm-stage; `
+    Move-Item -LiteralPath "C:\llvm-stage\llvm-mingw-$env:LLVM_MINGW_VERSION-ucrt-x86_64" -Destination C:\llvm-mingw; `
+    Remove-Item C:\llvm-mingw.zip -Force; `
+    Remove-Item C:\llvm-stage -Recurse -Force
+
+ENV PATH="C:\cargo\bin;C:\llvm-mingw\bin;C:\Windows\system32;C:\Windows;C:\Windows\System32\WindowsPowerShell\v1.0"
+
+USER ContainerUser
+RUN rustc --version; `
+    cargo --version; `
+    x86_64-w64-mingw32-gcc --version | Select-Object -First 1
+
+WORKDIR C:\workspace

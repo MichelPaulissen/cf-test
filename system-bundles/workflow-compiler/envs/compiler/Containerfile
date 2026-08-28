@@ -1,0 +1,53 @@
+# syntax=docker/dockerfile:1
+ARG RUST_IMAGE=docker.io/library/rust@sha256:8322627e69ba7780b54f39e9f4d3758c006a3ae0123ea01d63b91f0626169891
+ARG CLUSTERFLUX_ENVIRONMENT_DIGEST
+ARG CLUSTERFLUX_RUST_RELEASE
+ARG CLUSTERFLUX_WASM_TARGET
+FROM ${RUST_IMAGE} AS builder
+ARG CLUSTERFLUX_RUST_RELEASE
+ARG CLUSTERFLUX_WASM_TARGET
+ENV RUSTUP_TOOLCHAIN=${CLUSTERFLUX_RUST_RELEASE}
+WORKDIR /src
+COPY Cargo.toml Cargo.lock compiler-toolchain.json ./
+COPY crates ./crates
+COPY system-bundles/workflow-compiler/driver ./system-bundles/workflow-compiler/driver
+COPY system-bundles/workflow-compiler/envs ./system-bundles/workflow-compiler/envs
+COPY system-bundles/workflow-compiler/package.js ./system-bundles/workflow-compiler/package.js
+RUN rustup target add ${CLUSTERFLUX_WASM_TARGET} \
+ && test "$(rustc --version --verbose | sed -n 's/^release: //p')" = "${CLUSTERFLUX_RUST_RELEASE}" \
+ && rustc --version --verbose | grep -Eq '^host: (x86_64|aarch64)-unknown-linux-gnu$' \
+ && rustc --print target-list | grep -Fx "${CLUSTERFLUX_WASM_TARGET}" \
+ && cargo build --locked --release -p clusterflux-system-compiler-driver --target-dir /compiler-driver-target \
+ && cargo build --locked --release --target wasm32-unknown-unknown -p clusterflux-sdk \
+ && mkdir -p /appliance/sdk/deps /appliance/bin /appliance/rust \
+ && cp /compiler-driver-target/release/clusterflux-system-compiler-driver /appliance/bin/compile-workflow \
+ && cp target/wasm32-unknown-unknown/release/deps/libclusterflux-*.rlib /appliance/sdk/libclusterflux.rlib \
+ && cp target/wasm32-unknown-unknown/release/deps/libserde-*.rlib /appliance/sdk/libserde.rlib \
+ && cp target/wasm32-unknown-unknown/release/deps/* /appliance/sdk/deps/ \
+ && cp target/release/deps/*.so /appliance/sdk/deps/ \
+ && printf 'format=clusterflux-compiler-sdk-v1\nrust_toolchain=%s\ntarget=%s\nclusterflux_task_abi=1\nserde_version=1.0.228\nserde_features=derive\n' "${CLUSTERFLUX_RUST_RELEASE}" "${CLUSTERFLUX_WASM_TARGET}" > /appliance/sdk/MANIFEST \
+ && (cd /appliance/sdk && find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS) \
+ && cp -a "$(rustc --print sysroot)/." /appliance/rust/ \
+ && rust_lld="$(find /appliance/rust/lib/rustlib -path '*/bin/rust-lld' -type f -print -quit)" \
+ && test -n "$rust_lld" \
+ && cp "$rust_lld" /appliance/rust/bin/rust-lld \
+ && test -x /appliance/rust/bin/rust-lld
+
+FROM docker.io/library/debian@sha256:362e64223cc0da95422b3b13c045186fc0a81250e765d31c025fbddf257f6143
+ARG CLUSTERFLUX_ENVIRONMENT_DIGEST
+LABEL org.clusterflux.environment-digest=${CLUSTERFLUX_ENVIRONMENT_DIGEST}
+COPY --from=builder /appliance/rust /opt/rust
+COPY --from=builder /appliance/sdk /opt/clusterflux/sdk
+COPY --from=builder /appliance/bin/compile-workflow /opt/clusterflux/bin/compile-workflow
+RUN rm -f /opt/rust/bin/cargo /opt/rust/bin/cargo-* /opt/rust/bin/rustdoc /opt/rust/bin/rustfmt \
+ && test -x /opt/rust/bin/rustc \
+ && test -x /opt/rust/bin/rust-lld \
+ && rm -rf /usr/bin/apt /usr/bin/apt-* /usr/bin/apt-cache /usr/bin/apt-config \
+      /usr/bin/dpkg /usr/bin/dpkg-* /usr/lib/apt /usr/lib/dpkg /var/lib/dpkg /etc/apt \
+ && test ! -e /usr/bin/git \
+ && test ! -e /usr/bin/curl \
+ && test ! -e /usr/bin/wget \
+ && test ! -e /usr/bin/apt-get \
+ && test ! -e /usr/bin/dpkg \
+ && useradd --system --uid 65532 --home-dir /nonexistent --shell /usr/sbin/nologin compiler
+USER 65532:65532

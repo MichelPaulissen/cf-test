@@ -1,0 +1,21 @@
+[package]
+name = "clusterflux-client"
+version = "0.2.0"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+clusterflux-core = { path = "../clusterflux-core" }
+clusterflux-protocol = { path = "../clusterflux-protocol" }
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio = { workspace = true, features = ["sync", "time"] }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+httpdate.workspace = true
+ureq.workspace = true
+
+[dev-dependencies]
+clusterflux-coordinator = { path = "../clusterflux-coordinator" }

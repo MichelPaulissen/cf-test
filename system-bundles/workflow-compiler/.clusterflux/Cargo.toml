@@ -1,0 +1,15 @@
+[package]
+name = "clusterflux-system-workflow-compiler"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[lib]
+path = "main.rs"
+crate-type = ["cdylib"]
+
+[dependencies]
+clusterflux = { package = "clusterflux-sdk", version = "=0.2.0", path = "../../../crates/clusterflux-sdk" }
+
+[workspace]
+resolver = "3"

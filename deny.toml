@@ -1,0 +1,54 @@
+[graph]
+all-features = true
+
+[advisories]
+ignore = [
+  { id = "RUSTSEC-2026-0222", reason = "Clusterflux accepts only module bytes and checks Engine::same for every Module/Store pair before instantiation; Wasmtime documents this as an unaffected embedding pattern." },
+  { id = "RUSTSEC-2024-0436", reason = "paste is an unmaintained transitive dependency through iroh/netlink; RustSec lists no safe upgrade, and it is not used directly by Clusterflux." },
+  { id = "RUSTSEC-2023-0071", reason = "rsa is present only in Cargo.lock through sqlx-mysql; Clusterflux Web disables SQLx default features, enables PostgreSQL only, and cargo-deny/cargo-tree confirm rsa is absent from the active graph." },
+]
+
+[licenses]
+allow = [
+  "Apache-2.0",
+  "Apache-2.0 WITH LLVM-exception",
+  "BSD-1-Clause",
+  "BSD-2-Clause",
+  "BSD-3-Clause",
+  "BSL-1.0",
+  "CC0-1.0",
+  "CDLA-Permissive-2.0",
+  "ISC",
+  "MIT",
+  "MIT-0",
+  "Unicode-3.0",
+  "Unlicense",
+  "Zlib",
+]
+confidence-threshold = 0.8
+exceptions = [
+  { allow = ["MPL-2.0"], crate = "attohttpc" },
+  { allow = ["LGPL-2.1-or-later"], crate = "r-efi" },
+]
+
+[licenses.private]
+# Private deployment and web crates are deliberately unpublished; their source
+# is not offered under a distributable package license. Third-party crates stay
+# subject to the allowlist and exceptions above.
+ignore = true
+
+[bans]
+# Duplicate warnings stay visible. The important current families are the
+# ed25519/sha2 split between Clusterflux identity code and Iroh 1.0, the
+# Wasmtime/WASI tooling split, and legacy platform crates below Iroh's network
+# discovery stack. They remain upstream-constrained; do not blanket-ignore
+# duplicates or turn this check off.
+multiple-versions = "warn"
+highlight = "simplest-path"
+wildcards = "allow"
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+allow-git = []

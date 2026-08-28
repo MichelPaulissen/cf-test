@@ -1,0 +1,22 @@
+# syntax=docker/dockerfile:1
+FROM alpine:3.22.1 AS github_cli
+ARG GH_VERSION=2.76.2
+ARG GH_ARCHIVE_SHA256=62544b0f3759bbf1155c0ac3d75838b5fe23d66dfb75cf8368f84fff8f82b93e
+RUN wget -q "https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_linux_amd64.tar.gz" \
+      -O /tmp/gh.tar.gz \
+ && echo "${GH_ARCHIVE_SHA256}  /tmp/gh.tar.gz" | sha256sum -c - \
+ && tar -xzf /tmp/gh.tar.gz -C /tmp \
+ && install -D -m 0755 "/tmp/gh_${GH_VERSION}_linux_amd64/bin/gh" /out/gh
+
+FROM alpine:3.22.1
+RUN apk add --no-cache ca-certificates jq \
+ && rm -rf /sbin/apk /lib/apk /etc/apk /var/cache/apk
+COPY --from=github_cli /out/gh /usr/bin/gh
+RUN gh --version | grep -F '2.76.2' \
+ && jq --version \
+ && ! command -v cargo \
+ && ! command -v rustc \
+ && ! command -v node \
+ && ! command -v npm
+USER 65532:65532
+WORKDIR /workspace
