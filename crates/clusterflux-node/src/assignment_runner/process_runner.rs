@@ -106,6 +106,11 @@ struct ContainerControl {
     name: String,
 }
 
+enum ExecutionControlPollError {
+    Transient(String),
+    Fatal(BackendError),
+}
+
 enum FrozenExecution {
     ContainerRuntime(ContainerControl),
     #[cfg(unix)]
@@ -125,6 +130,8 @@ impl Drop for CoordinatorControlledProcessRunner {
 impl CoordinatorControlledProcessRunner {
     const MAX_CAPTURE_BYTES: usize = 256 * 1024 + 1;
     const PODMAN_CONTROL_TIMEOUT: Duration = Duration::from_secs(2);
+    const EXECUTION_CONTROL_OUTAGE_GRACE: Duration = Duration::from_secs(30);
+    const EXECUTION_CONTROL_RETRY_MAX_DELAY: Duration = Duration::from_secs(2);
 
     pub(super) fn new(
         host: &CoordinatorWasmTaskHost,
@@ -153,7 +160,10 @@ impl CoordinatorControlledProcessRunner {
         }
     }
 
-    fn abort_requested(&self, session: &mut CoordinatorSession) -> Result<bool, BackendError> {
+    fn abort_requested(
+        &self,
+        session: &mut CoordinatorSession,
+    ) -> Result<bool, ExecutionControlPollError> {
         let request = crate::node_identity::signed_node_assignment_request(
             &self.args,
             &self.node_private_key,
@@ -168,17 +178,24 @@ impl CoordinatorControlledProcessRunner {
                 child_tasks: Vec::new(),
             },
         )
-        .map_err(|error| BackendError::Command(error.to_string()))?;
-        let response = session
-            .request(request)
-            .map_err(|error| BackendError::Command(format!("poll task control: {error}")))?;
+        .map_err(|error| {
+            ExecutionControlPollError::Fatal(BackendError::Command(error.to_string()))
+        })?;
+        let response = session.request(request).map_err(|error| {
+            let message = format!("poll task control: {error}");
+            if crate::coordinator_session::retryable_session_error(error.as_ref()) {
+                ExecutionControlPollError::Transient(message)
+            } else {
+                ExecutionControlPollError::Fatal(BackendError::Command(message))
+            }
+        })?;
         match response {
             CoordinatorResponse::TaskControl {
                 abort_requested, ..
             } => Ok(abort_requested),
-            _ => Err(BackendError::Command(
+            _ => Err(ExecutionControlPollError::Fatal(BackendError::Command(
                 "coordinator returned an unexpected task-control response".to_owned(),
-            )),
+            ))),
         }
     }
 
@@ -656,6 +673,9 @@ impl ProcessRunner for CoordinatorControlledProcessRunner {
         };
 
         let mut frozen_execution: Option<(u64, FrozenExecution)> = None;
+        let mut control_outage_started = None;
+        let mut next_control_poll = Instant::now();
+        let mut control_retry_delay = Duration::from_millis(100);
         let started = Instant::now();
         let status = loop {
             match child.try_wait() {
@@ -697,27 +717,80 @@ impl ProcessRunner for CoordinatorControlledProcessRunner {
                     "Wasm lane requested local command cancellation".to_owned(),
                 ));
             }
-            match self.abort_requested(&mut session) {
-                Ok(true) => {
-                    self.set_command_status(format!(
-                        "aborting {execution_kind} pid {} at coordinator request",
-                        child.id()
-                    ));
-                    Self::terminate_execution(&mut child, container.as_ref());
-                    let _ = stdout.join();
-                    let _ = stderr.join();
-                    let _ = live_log_reporter.join();
-                    return Err(BackendError::Cancelled(
-                        "coordinator requested cancellation or abort".to_owned(),
-                    ));
-                }
-                Ok(false) => {}
-                Err(error) => {
-                    Self::terminate_execution(&mut child, container.as_ref());
-                    let _ = stdout.join();
-                    let _ = stderr.join();
-                    let _ = live_log_reporter.join();
-                    return Err(error);
+            let control_now = Instant::now();
+            if control_now >= next_control_poll {
+                match self.abort_requested(&mut session) {
+                    Ok(true) => {
+                        self.set_command_status(format!(
+                            "aborting {execution_kind} pid {} at coordinator request",
+                            child.id()
+                        ));
+                        Self::terminate_execution(&mut child, container.as_ref());
+                        let _ = stdout.join();
+                        let _ = stderr.join();
+                        let _ = live_log_reporter.join();
+                        return Err(BackendError::Cancelled(
+                            "coordinator requested cancellation or abort".to_owned(),
+                        ));
+                    }
+                    Ok(false) => {
+                        if control_outage_started.take().is_some() {
+                            self.set_command_status(format!(
+                                "running {execution_kind} pid {} after execution control reconnected",
+                                child.id()
+                            ));
+                        }
+                        control_retry_delay = Duration::from_millis(100);
+                    }
+                    Err(ExecutionControlPollError::Transient(error)) => {
+                        let outage_started = *control_outage_started.get_or_insert(control_now);
+                        let outage_duration = control_now.duration_since(outage_started);
+                        if outage_duration >= Self::EXECUTION_CONTROL_OUTAGE_GRACE {
+                            Self::terminate_execution(&mut child, container.as_ref());
+                            let _ = stdout.join();
+                            let _ = stderr.join();
+                            let _ = live_log_reporter.join();
+                            return Err(BackendError::Command(format!(
+                                "execution control was unavailable for {} ms; last error: {error}",
+                                outage_duration.as_millis()
+                            )));
+                        }
+                        self.set_command_status(format!(
+                            "{execution_kind} pid {} is running while execution control reconnects: {error}",
+                            child.id()
+                        ));
+                        match CoordinatorSession::connect_with_timeouts(
+                            &self.args.coordinator,
+                            Duration::from_millis(500),
+                            Duration::from_millis(500),
+                        ) {
+                            Ok(reconnected) => session = reconnected,
+                            Err(reconnect_error)
+                                if crate::coordinator_session::retryable_session_error(
+                                    reconnect_error.as_ref(),
+                                ) => {}
+                            Err(reconnect_error) => {
+                                Self::terminate_execution(&mut child, container.as_ref());
+                                let _ = stdout.join();
+                                let _ = stderr.join();
+                                let _ = live_log_reporter.join();
+                                return Err(BackendError::Command(format!(
+                                    "reestablish execution control channel: {reconnect_error}"
+                                )));
+                            }
+                        }
+                        next_control_poll = Instant::now() + control_retry_delay;
+                        control_retry_delay = control_retry_delay
+                            .saturating_mul(2)
+                            .min(Self::EXECUTION_CONTROL_RETRY_MAX_DELAY);
+                    }
+                    Err(ExecutionControlPollError::Fatal(error)) => {
+                        Self::terminate_execution(&mut child, container.as_ref());
+                        let _ = stdout.join();
+                        let _ = stderr.join();
+                        let _ = live_log_reporter.join();
+                        return Err(error);
+                    }
                 }
             }
             if let Some(epoch) = self.debug_control.requested_epoch() {

@@ -32,6 +32,34 @@ fn start_running_control_server() -> (String, thread::JoinHandle<()>) {
 }
 
 #[cfg(unix)]
+fn start_reconnecting_control_server() -> (String, thread::JoinHandle<()>) {
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let coordinator = listener.local_addr().unwrap().to_string();
+    let server = thread::spawn(move || {
+        let (interrupted, _) = listener.accept().unwrap();
+        let mut request = String::new();
+        BufReader::new(interrupted.try_clone().unwrap())
+            .read_line(&mut request)
+            .unwrap();
+        assert!(!request.trim().is_empty());
+        drop(interrupted);
+
+        let (mut recovered, _) = listener.accept().unwrap();
+        let mut reader = BufReader::new(recovered.try_clone().unwrap());
+        loop {
+            let mut request = String::new();
+            match reader.read_line(&mut request) {
+                Ok(0) | Err(_) => break,
+                Ok(_) => recovered
+                    .write_all(b"{\"type\":\"task_control\",\"process\":\"vp\",\"task\":\"task\",\"cancel_requested\":false,\"abort_requested\":false}\n")
+                    .unwrap(),
+            }
+        }
+    });
+    (coordinator, server)
+}
+
+#[cfg(unix)]
 fn test_controlled_runner(
     coordinator: String,
     timeout: Duration,
@@ -177,6 +205,31 @@ fn controlled_process_runner_kills_running_group_when_abort_is_polled() {
 
     assert!(matches!(error, BackendError::Cancelled(_)));
     assert!(started.elapsed() < Duration::from_secs(5));
+}
+
+#[cfg(unix)]
+#[test]
+fn controlled_process_runner_survives_a_transient_control_disconnect() {
+    let (coordinator, server) = start_reconnecting_control_server();
+    let mut runner = test_controlled_runner(coordinator, Duration::from_secs(5));
+
+    let output = runner
+        .run(&PodmanCommand {
+            program: "sh".to_owned(),
+            args: vec!["-c".to_owned(), "sleep 1".to_owned()],
+            working_directory: None,
+            environment: BTreeMap::new(),
+        })
+        .unwrap();
+    server.join().unwrap();
+
+    assert_eq!(output.status_code, Some(0));
+    assert!(runner
+        .command_status
+        .lock()
+        .unwrap()
+        .as_deref()
+        .is_some_and(|status| status.contains("exited with status")));
 }
 
 #[cfg(unix)]

@@ -231,6 +231,12 @@ fn retryable_transport_error(error: &ControlTransportError) -> bool {
     }
 }
 
+pub(crate) fn retryable_session_error(error: &(dyn std::error::Error + 'static)) -> bool {
+    error
+        .downcast_ref::<ControlTransportError>()
+        .is_some_and(retryable_transport_error)
+}
+
 fn jittered_reconnect_delay(base: Duration, maximum: Duration, attempt: u64) -> Duration {
     let nanos = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -302,6 +308,10 @@ mod tests {
         assert!(!retryable_transport_error(
             &ControlTransportError::Coordinator("node identity is not enrolled".to_owned())
         ));
+        assert!(retryable_session_error(&ControlTransportError::Closed));
+        assert!(!retryable_session_error(&ControlTransportError::Protocol(
+            "wrong response".to_owned()
+        )));
     }
 
     #[test]
