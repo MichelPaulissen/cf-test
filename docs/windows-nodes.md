@@ -32,15 +32,17 @@ capabilities = ["command", "containers", "containerd_nerdctl"]
 secrets = []
 ~~~
 
-Install the public Windows node package in PowerShell:
+Install the public Windows node package from an Administrator PowerShell:
 
 ~~~powershell
 irm https://github.com/lesstuff/clusterflux/releases/latest/download/install-windows.ps1 | iex
 ~~~
 
 The installer verifies the release ZIP before extraction and installs into
-`%LOCALAPPDATA%\Clusterflux` by default. It does not install containerd,
-BuildKit, nerdctl, CNI, or a Windows service.
+`%LOCALAPPDATA%\Clusterflux` by default. An elevated install adds a
+program-scoped inbound UDP rule for authenticated direct artifact transfers. A
+non-elevated install prints that missing action instead. The installer does not
+install containerd, BuildKit, nerdctl, CNI, or a Windows service.
 
 Build the immutable task image during node setup, not during a task:
 

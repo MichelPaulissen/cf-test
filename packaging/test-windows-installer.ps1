@@ -55,12 +55,15 @@ function Start-PackageServer([string]$File, [long]$Limit = -1) {
 try {
     $prefix = Join-Path $work 'install'
     $goodUri = Start-PackageServer $packagePath
-    $output = @(& $installerPath -Prefix $prefix -DownloadUri $goodUri -NoPathUpdate)
+    $output = @(& $installerPath -Prefix $prefix -DownloadUri $goodUri -NoPathUpdate -NoFirewallUpdate)
     if (-not ($output -join "`n").Contains("Installed Clusterflux $ExpectedVersion")) {
         throw 'installer did not report the installed version'
     }
     if (-not ($output -join "`n").Contains("Add $prefix to your user PATH")) {
         throw 'installer did not report the PATH action'
+    }
+    if (-not ($output -join "`n").Contains('Windows Firewall was not changed')) {
+        throw 'installer did not report the firewall action'
     }
     foreach ($name in @('clusterflux-node.exe', 'clusterflux-environment-setup.exe', 'package-manifest.json')) {
         if (-not (Test-Path -LiteralPath (Join-Path $prefix $name) -PathType Leaf)) {
@@ -70,7 +73,7 @@ try {
 
     [IO.File]::WriteAllText((Join-Path $prefix 'old-install-sentinel'), 'old')
     $goodUri = Start-PackageServer $packagePath
-    & $installerPath -Prefix $prefix -DownloadUri $goodUri -NoPathUpdate | Out-Null
+    & $installerPath -Prefix $prefix -DownloadUri $goodUri -NoPathUpdate -NoFirewallUpdate | Out-Null
     if (Test-Path -LiteralPath (Join-Path $prefix 'old-install-sentinel')) {
         throw 'installer did not atomically replace the previous installation'
     }
@@ -79,7 +82,7 @@ try {
     [IO.File]::WriteAllBytes($corrupt, [byte[]](1, 2, 3, 4))
     $badUri = Start-PackageServer $corrupt
     $rejected = $false
-    try { & $installerPath -Prefix $prefix -DownloadUri $badUri -NoPathUpdate | Out-Null }
+    try { & $installerPath -Prefix $prefix -DownloadUri $badUri -NoPathUpdate -NoFirewallUpdate | Out-Null }
     catch { $rejected = $_.Exception.Message -like '*digest mismatch*' }
     if (-not $rejected -or -not (Test-Path -LiteralPath (Join-Path $prefix 'clusterflux-node.exe'))) {
         throw 'installer did not safely reject a wrong package digest'
@@ -87,7 +90,7 @@ try {
 
     $partialUri = Start-PackageServer $packagePath 1024
     $partialRejected = $false
-    try { & $installerPath -Prefix $prefix -DownloadUri $partialUri -NoPathUpdate | Out-Null }
+    try { & $installerPath -Prefix $prefix -DownloadUri $partialUri -NoPathUpdate -NoFirewallUpdate | Out-Null }
     catch { $partialRejected = $_.Exception.Message -like '*digest mismatch*' }
     if (-not $partialRejected -or -not (Test-Path -LiteralPath (Join-Path $prefix 'clusterflux-node.exe'))) {
         throw 'installer did not safely reject a partial package download'
@@ -102,6 +105,7 @@ try {
         partial_download_rejected = $true
         existing_install_replaced_atomically = $true
         path_action_reported = $true
+        firewall_action_reported = $true
     }
     $json = $result | ConvertTo-Json
     if ($Report) {

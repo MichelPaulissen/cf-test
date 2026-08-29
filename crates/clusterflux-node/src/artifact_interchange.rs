@@ -1080,14 +1080,21 @@ impl NodeArtifactDataPlane {
             .project_root
             .clone()
             .unwrap_or(std::env::current_dir()?);
+        let identity_path = iroh_identity_path(&project_root, &args.node);
         let identity = PersistentIrohIdentity::load_or_create(
-            iroh_identity_path(&project_root, &args.node),
+            &identity_path,
             IrohIdentityScope {
                 tenant: TenantId::try_new(args.tenant.clone())?,
                 project: ProjectId::try_new(args.project.clone())?,
                 node: NodeId::try_new(args.node.clone())?,
             },
-        )?;
+        )
+        .map_err(|error| {
+            format!(
+                "load or create artifact endpoint identity at `{}`: {error}",
+                identity_path.display()
+            )
+        })?;
         let runtime = tokio::runtime::Builder::new_multi_thread()
             .worker_threads(2)
             .max_blocking_threads(16)

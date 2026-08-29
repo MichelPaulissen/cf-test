@@ -8,6 +8,9 @@ mod system_compiler;
 mod task_artifacts;
 mod task_reports;
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    daemon::run()
+fn main() {
+    if let Err(error) = daemon::run() {
+        eprintln!("Clusterflux node failed: {error}");
+        std::process::exit(1);
+    }
 }

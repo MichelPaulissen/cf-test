@@ -60,7 +60,9 @@ Clusterflux $Version for Windows x86-64.
 
 This package installs a user-attached execution-only node and the environment
 setup helper. Install and start containerd, BuildKit, nerdctl, and the Windows
-nat CNI network separately. Native host commands remain disabled by default.
+nat CNI network separately. Allow inbound UDP for clusterflux-node.exe so
+authenticated peers can transfer artifacts. Native host commands remain
+disabled by default.
 
 Documentation: https://github.com/lesstuff/clusterflux/blob/main/docs/windows-nodes.md
 "@

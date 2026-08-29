@@ -186,8 +186,16 @@ fn ensure_private_file_permissions(
     Ok(())
 }
 
+#[cfg(unix)]
 fn sync_directory(path: &Path) -> Result<(), IdentityError> {
     fs::File::open(path)?.sync_all()?;
+    Ok(())
+}
+
+#[cfg(not(unix))]
+fn sync_directory(_path: &Path) -> Result<(), IdentityError> {
+    // The identity file itself is flushed before its atomic rename. Windows
+    // does not support opening a directory through std::fs::File for fsync.
     Ok(())
 }
 

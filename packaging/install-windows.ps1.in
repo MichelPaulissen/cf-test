@@ -2,7 +2,8 @@ param(
     [string]$Prefix = (Join-Path $env:LOCALAPPDATA 'Clusterflux'),
     [string]$ReleaseTag = $(if ($env:CLUSTERFLUX_RELEASE_TAG) { $env:CLUSTERFLUX_RELEASE_TAG } else { '@RELEASE_TAG@' }),
     [string]$DownloadUri = '',
-    [switch]$NoPathUpdate
+    [switch]$NoPathUpdate,
+    [switch]$NoFirewallUpdate
 )
 
 $ErrorActionPreference = 'Stop'
@@ -116,6 +117,32 @@ if (-not ($pathEntries | Where-Object { $_.TrimEnd('\') -ieq $prefixPath.TrimEnd
         [Environment]::SetEnvironmentVariable('Path', $newPath, 'User')
         Write-Output "Added $prefixPath to your user PATH. Open a new terminal to use it."
     }
+}
+
+$nodeProgram = Join-Path $prefixPath 'clusterflux-node.exe'
+$firewallRuleName = 'ClusterfluxArtifactTransferInbound'
+$isAdministrator = [Security.Principal.WindowsPrincipal]::new(
+    [Security.Principal.WindowsIdentity]::GetCurrent()
+).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+if ($NoFirewallUpdate) {
+    Write-Output "Windows Firewall was not changed. Allow inbound UDP for $nodeProgram before transferring artifacts."
+} elseif (-not $isAdministrator) {
+    Write-Output 'Windows Firewall was not changed because this PowerShell is not running as Administrator.'
+    Write-Output 'Rerun this installer from an Administrator PowerShell to enable direct artifact transfer.'
+} else {
+    Get-NetFirewallRule -Name $firewallRuleName -ErrorAction SilentlyContinue |
+        Remove-NetFirewallRule -ErrorAction Stop
+    New-NetFirewallRule `
+        -Name $firewallRuleName `
+        -DisplayName 'Clusterflux artifact transfer' `
+        -Group 'Clusterflux' `
+        -Enabled True `
+        -Direction Inbound `
+        -Action Allow `
+        -Program $nodeProgram `
+        -Protocol UDP `
+        -Profile Any | Out-Null
+    Write-Output "Allowed authenticated Clusterflux artifact transfer through Windows Firewall for $nodeProgram."
 }
 
 Write-Output "Installed Clusterflux $expectedVersion in $prefixPath"
