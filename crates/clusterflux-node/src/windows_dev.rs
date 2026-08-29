@@ -155,8 +155,6 @@ impl WindowsContainerdNerdctlBackend {
             windows_volume_mount(&checkout.host_path, r"C:\workspace", true)?,
             "--volume".to_owned(),
             windows_volume_mount(&output_root, r"C:\clusterflux\output", false)?,
-            "--env".to_owned(),
-            r"CARGO_TARGET_DIR=C:\clusterflux\output\target".to_owned(),
             "--workdir".to_owned(),
             windows_container_working_directory(&invocation.working_directory)?,
         ];

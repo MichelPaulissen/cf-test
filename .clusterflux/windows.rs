@@ -53,8 +53,13 @@ pub async fn build_windows_release_package(
             package.as_str(),
         ])
         .cwd(root)
-        .env("CARGO_HOME", r"C:\clusterflux\output\cargo-home")
-        .env("CARGO_TARGET_DIR", r"C:\clusterflux\output\target")
+        // Keep Cargo's high-churn registry and target writes on the ephemeral
+        // container layer. Only the completed ZIP crosses the output bind mount.
+        .env("CARGO_HOME", r"C:\Users\ContainerUser\.cargo-task")
+        .env(
+            "CARGO_TARGET_DIR",
+            r"C:\Users\ContainerUser\clusterflux-target",
+        )
         .env("CARGO_TERM_COLOR", "always")
         .env("CARGO_INCREMENTAL", "0")
         .env("RUSTFLAGS", "-C target-feature=+crt-static")

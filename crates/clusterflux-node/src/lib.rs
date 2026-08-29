@@ -1386,6 +1386,11 @@ mod tests {
         assert!(!run.run.args.contains(&"--pids-limit".to_owned()));
         assert!(!run.run.args.contains(&"--mount".to_owned()));
         assert!(!run.run.args.contains(&"--read-only".to_owned()));
+        assert!(!run
+            .run
+            .args
+            .iter()
+            .any(|arg| arg.starts_with("CARGO_TARGET_DIR=")));
         assert_eq!(
             run.run
                 .args
