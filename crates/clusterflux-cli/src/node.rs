@@ -1157,7 +1157,13 @@ fn session_or_effective_scope_value(
 }
 
 pub(crate) fn attach_plan(args: AttachArgs) -> NodeAttachPlan {
-    let mut capabilities = NodeCapabilities::detect_current();
+    attach_plan_with_capabilities(args, NodeCapabilities::detect_current())
+}
+
+pub(crate) fn attach_plan_with_capabilities(
+    args: AttachArgs,
+    mut capabilities: NodeCapabilities,
+) -> NodeAttachPlan {
     let mut recognized_capability_overrides = Vec::new();
     let mut unrecognized_capability_overrides = Vec::new();
     for cap in &args.caps {

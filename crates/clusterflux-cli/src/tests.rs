@@ -58,6 +58,31 @@ fn test_node_capabilities() -> Value {
     })
 }
 
+fn test_linux_container_node_capabilities() -> clusterflux_core::NodeCapabilities {
+    clusterflux_core::NodeCapabilities {
+        os: clusterflux_core::Os::Linux,
+        arch: "x86_64".to_owned(),
+        capabilities: std::collections::BTreeSet::from([
+            Capability::Command,
+            Capability::Containers,
+            Capability::RootlessPodman,
+            Capability::SourceFilesystem,
+            Capability::SourceGit,
+            Capability::VfsArtifacts,
+            Capability::ArtifactTransfer,
+        ]),
+        environment_backends: std::collections::BTreeSet::from([
+            clusterflux_core::EnvironmentBackend::Container,
+        ]),
+        source_providers: std::collections::BTreeSet::from([
+            "filesystem".to_owned(),
+            "git".to_owned(),
+        ]),
+        work_policy: clusterflux_core::NodeWorkPolicy::Normal,
+        system_bundles: Vec::new(),
+    }
+}
+
 fn test_artifact_connectivity() -> Value {
     json!({
         "endpoint_advertised": false,

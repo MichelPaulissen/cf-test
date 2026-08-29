@@ -15,6 +15,14 @@ use crate::DoctorArgs;
 const DOCTOR_COORDINATOR_TIMEOUT: Duration = Duration::from_millis(500);
 
 pub(crate) fn doctor_report(args: DoctorArgs, cwd: PathBuf) -> Result<Value> {
+    doctor_report_with_capabilities(args, cwd, NodeCapabilities::detect_current())
+}
+
+pub(crate) fn doctor_report_with_capabilities(
+    args: DoctorArgs,
+    cwd: PathBuf,
+    node_readiness: NodeCapabilities,
+) -> Result<Value> {
     let config = read_project_config(&cwd)?;
     let coordinator = args.scope.coordinator.or_else(|| {
         config
@@ -30,7 +38,6 @@ pub(crate) fn doctor_report(args: DoctorArgs, cwd: PathBuf) -> Result<Value> {
         "clusterflux-coordinator": command_available("clusterflux-coordinator") || sibling_binary("clusterflux-coordinator").is_some(),
         "clusterflux-debug-dap": command_available("clusterflux-debug-dap") || sibling_binary("clusterflux-debug-dap").is_some(),
     });
-    let node_readiness = NodeCapabilities::detect_current();
     let node_readiness_summary = node_readiness_summary(&node_readiness, &dependencies);
     Ok(json!({
         "command": "doctor",

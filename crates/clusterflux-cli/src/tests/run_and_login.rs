@@ -197,7 +197,7 @@ fn node_attach_detects_and_accepts_capability_overrides() {
     else {
         panic!("wrong command");
     };
-    let plan = attach_plan(args);
+    let plan = attach_plan_with_capabilities(args, test_linux_container_node_capabilities());
 
     assert!(plan
         .capabilities
@@ -247,7 +247,7 @@ fn node_attach_discloses_container_and_sensitive_capability_grants() {
     else {
         panic!("wrong command");
     };
-    let plan = attach_plan(args);
+    let plan = attach_plan_with_capabilities(args, test_linux_container_node_capabilities());
     let grants = plan
         .grant_disclosures
         .iter()

@@ -20,7 +20,7 @@ fn hosted_coordinator_remains_a_real_https_control_endpoint() {
 #[test]
 fn doctor_reports_unchecked_coordinator_reachability_without_config() {
     let temp = tempfile::tempdir().unwrap();
-    let report = doctor_report(
+    let report = doctor::doctor_report_with_capabilities(
         DoctorArgs {
             scope: CliScopeArgs {
                 coordinator: None,
@@ -31,6 +31,7 @@ fn doctor_reports_unchecked_coordinator_reachability_without_config() {
             },
         },
         temp.path().to_path_buf(),
+        test_linux_container_node_capabilities(),
     )
     .unwrap();
 
