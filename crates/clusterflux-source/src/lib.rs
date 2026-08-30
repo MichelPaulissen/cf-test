@@ -470,13 +470,21 @@ pub fn resolve_public_git_ref(repository_url: &str, git_ref: &str) -> Result<Str
         return Err("Git ref must identify a branch or tag".to_owned());
     }
     let peeled = format!("{git_ref}^{{}}");
+    let workspace = isolated_git_metadata_workspace()?;
     let output = run_git(
-        Path::new("."),
+        workspace.path(),
         ["ls-remote", repository_url, git_ref, peeled.as_str()],
         DEFAULT_GIT_TIMEOUT,
         4 * 1024,
     )?;
     parse_resolved_git_ref(&output, git_ref)
+}
+
+fn isolated_git_metadata_workspace() -> Result<tempfile::TempDir, String> {
+    tempfile::Builder::new()
+        .prefix("clusterflux-git-metadata-")
+        .tempdir()
+        .map_err(|error| format!("create Git metadata temporary directory: {error}"))
 }
 
 fn parse_resolved_git_ref(output: &[u8], git_ref: &str) -> Result<String, String> {
@@ -2195,5 +2203,15 @@ mod tests {
         assert!(parse_resolved_git_ref(b"", "refs/heads/main")
             .unwrap_err()
             .contains("not found"));
+    }
+
+    #[test]
+    fn public_ref_resolution_uses_an_empty_isolated_workspace() {
+        let workspace = isolated_git_metadata_workspace().unwrap();
+        assert_ne!(
+            workspace.path().canonicalize().unwrap(),
+            Path::new(".").canonicalize().unwrap()
+        );
+        assert_eq!(workspace_size(workspace.path(), 1).unwrap(), 0);
     }
 }
